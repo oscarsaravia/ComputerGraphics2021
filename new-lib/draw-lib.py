@@ -23,6 +23,8 @@ def color(r, g, b):
 WHITE = color(255, 255, 255)
 BLACK = color(0, 0, 0)
 BLUE = color(0, 0, 255)
+AQUA = color(0, 255, 255)
+PIKACHU = color(244,220,38)
 
 
 class Renderer(object):
@@ -129,12 +131,12 @@ class Renderer(object):
         threshold += 1 * 2 * dx
 
     for point in points:
-      self.glVertex(*point, WHITE)
+      self.glVertex(*point, PIKACHU)
   
   def load(self, filename, translate, scale):
     model = Obj(filename)
-    
     for face in model.faces:
+      # print(face)
       vcount = len(face)
       for j in range(vcount):
         f1 = face[j][0]
@@ -155,8 +157,10 @@ class Renderer(object):
     # self.glLine(20, 10, 40, 60)
     # self.glLine(100, 100, 200, 200)
     # self.glLine(100, 200, 500, 100)
-    # self.glLine(40, 60, 10, 20)
-    # self.load('./models/woolly-mammoth-skeleton.obj', [1, -1], [10, 10])
+    #self.glLine(40, 60, 10, 20)
+    self.load('./models/pikachu-pokemon-go.obj', [40, 5], [10, 10])
+    self.glFinish('image.bmp')
+    '''
     self.glVertex(165, 380, WHITE)
     self.glVertex(185, 360, WHITE)
     self.glVertex(180, 330, WHITE)
@@ -170,9 +174,9 @@ class Renderer(object):
     self.glLine(165, 380, 185, 360)
     self.glLine(185, 360, 180, 330)
     self.glLine(180, 330, 207, 345)
-    #self.glLine(185, 360, 230, 360)
+    self.glLine(185, 360, 230, 360)
     self.glFinish('image.bmp')
+    '''
 
 renderer = Renderer(800, 600)
 renderer.glInit()
-
