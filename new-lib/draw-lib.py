@@ -1,6 +1,8 @@
 # Librerias
 import struct
+import random
 from obj import Obj
+from figures import Figures
 
 # FUNCIONES
 
@@ -111,8 +113,12 @@ class Renderer(object):
       x0, y0 = y0, x0
       x1, y1 = y1, x1
 
-      dy = abs(y1 - y0)
-      dx = abs(x1 - x0)
+    if x0 > x1:
+      x0, x1 = x1, x0
+      y0, y1 = y1, y0
+
+    dy = abs(y1 - y0)
+    dx = abs(x1 - x0)
 
     offset = 0 * 2 * dx
     threshold = 0.5 * 2 * dx
@@ -153,30 +159,63 @@ class Renderer(object):
         self.glLine(x1, y1, x2, y2)
 
   def glInit(self):
-    # self.glLine(13, 20, 60, 40)
-    # self.glLine(20, 10, 40, 60)
-    # self.glLine(100, 100, 200, 200)
-    # self.glLine(100, 200, 500, 100)
-    #self.glLine(40, 60, 10, 20)
-    self.load('./models/pikachu-pokemon-go.obj', [40, 5], [10, 10])
+    # self.load('./models/pikachu-pokemon-go.obj', [40, 5], [10, 10])
+    self.drawPolygon('./polygons/polygon1.txt')
+    self.drawPolygon('./polygons/polygon2.txt')
+    self.drawPolygon('./polygons/polygon3.txt')
+    self.drawPolygon('./polygons/polygon4.txt')
     self.glFinish('image.bmp')
-    '''
-    self.glVertex(165, 380, WHITE)
-    self.glVertex(185, 360, WHITE)
-    self.glVertex(180, 330, WHITE)
-    self.glVertex(207, 345, WHITE)
-    self.glVertex(233, 330, WHITE)
-    self.glVertex(230, 360, WHITE)
-    self.glVertex(250, 380, WHITE)
-    self.glVertex(220, 385, WHITE)
-    self.glVertex(205, 410, WHITE)
-    self.glVertex(193, 383, WHITE)
-    self.glLine(165, 380, 185, 360)
-    self.glLine(185, 360, 180, 330)
-    self.glLine(180, 330, 207, 345)
-    self.glLine(185, 360, 230, 360)
-    self.glFinish('image.bmp')
-    '''
+
+  def drawPolygon(self, filename):
+    xpoints = []
+    ypoints= []
+    polygon = Figures(filename)
+    for i in  range(0, len(polygon.draws)):
+      if i < len(polygon.draws)-1:
+        x0 = int(polygon.draws[i][0])
+        y0 = int(polygon.draws[i][1])
+        x1 = int(polygon.draws[i+1][0])
+        y1 = int(polygon.draws[i+1][1])
+        self.glLine(x0, y0, x1, y1)
+        xpoints.extend([x0, x1])
+        ypoints.extend([y0, y1])
+      else:
+        x0 = int(polygon.draws[i][0])
+        y0 = int(polygon.draws[i][1])
+        x1 = int(polygon.draws[0][0])
+        y1 = int(polygon.draws[0][1])
+        self.glLine(x0, y0, x1, y1)
+        xpoints.extend([x0, x1])
+        ypoints.extend([y0, y1])
+    xpoints.sort()
+    ypoints.sort()
+    left = xpoints[0]
+    right = xpoints[len(xpoints)-1]
+    bottom = ypoints[0]
+    top = ypoints[len(ypoints)-1]
+
+    # Making a square
+    # self.glLine(left, bottom, left, top)
+    # self.glLine(left, top, right, top)
+    # self.glLine(right, top, right, bottom)
+    # self.glLine(right, bottom, left, bottom)
+
+    # for i in range(1, 100000):
+    #   randomx = random.randint(left, right)
+    #   randomy = random.randint(bottom, top)
+    #   self.glVertex(randomx, randomy, WHITE)
+    for y in range(bottom, top):
+      for x in range (left, right):
+        if self.framebuffer[y][x] != BLACK:
+          # if self.framebuffer[y][x-1] == BLACK:
+          tope = False
+          while tope == False:
+            if self.framebuffer[y][x+1] == BLACK:
+              self.framebuffer[y][x+1] = WHITE
+            else:
+              tope = True
+
+      
 
 renderer = Renderer(800, 600)
 renderer.glInit()
