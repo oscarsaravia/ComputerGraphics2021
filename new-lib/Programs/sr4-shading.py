@@ -79,26 +79,19 @@ def bbox(*vertices):
   return V2(xs[0], ys[0]), V2(xs[-1], ys[-1])
 
 def barycentric(A, B, C, P):
-  """
-    Input: 3 size 2 vectors and a point
-    Output: 3 barycentric coordinates of the point in relation to the triangle formed
-            * returns -1, -1, -1 for degenerate triangles
-  """  
-  cx, cy, cz = cross(
-    V3(B.x - A.x, C.x - A.x, A.x - P.x), 
-    V3(B.y - A.y, C.y - A.y, A.y - P.y)
+  bary = cross(
+    V3(C.x - A.x, B.x - A.x, A.x - P.x), 
+    V3(C.y - A.y, B.y - A.y, A.y - P.y)
   )
 
-  if abs(cz) < 1:
+  if abs(bary[2]) < 1:
     return -1, -1, -1   # this triangle is degenerate, return anything outside
 
-  # [cx cy cz] = [u v 1]
-
-  u = cx/cz
-  v = cy/cz
-  w = 1 - (u + v)
-
-  return w, v, u
+  return (
+    1 - (bary[0] + bary[1]) / bary[2], 
+    bary[1] / bary[2], 
+    bary[0] / bary[2]
+  )
 
 
 # FUNCIONES
@@ -137,6 +130,10 @@ class Renderer(object):
   def glCreateWindow(self, width, height):
     self.framebuffer = [
       [BLACK for x in range(self.width)]
+      for y in range(self.height)
+    ]
+    self.zbuffer = [
+      [-float('inf') for x in range(self.width)]
       for y in range(self.height)
     ]
     
@@ -238,14 +235,13 @@ class Renderer(object):
       self.glVertex(*point, color)
 
   def transform(self, vertex, translate=(0, 0, 0), scale=(1, 1, 1)):
-    # returns a vertex 3, translated and transformed
     return V3(
       round((vertex[0] + translate[0]) * scale[0]),
       round((vertex[1] + translate[1]) * scale[1]),
       round((vertex[2] + translate[2]) * scale[2])
     )
   
-  def load(self, filename, translate, scale, color):
+  def load(self, filename, translate=(0, 0, 0), scale=(1, 1, 1)):
     model = Obj(filename)
     light = V3(0, 0, 1)
     for face in model.faces:
@@ -255,7 +251,9 @@ class Renderer(object):
         f1 = face[0][0] - 1
         f2 = face[1][0] - 1
         f3 = face[2][0] - 1
-
+        # print(f1)
+        # print(f2)
+        # print(f3)
         a = self.transform(model.vertices[f1], translate, scale)
         b = self.transform(model.vertices[f2], translate, scale)
         c = self.transform(model.vertices[f3], translate, scale)
@@ -365,11 +363,17 @@ class Renderer(object):
         w, v, u = barycentric(A, B, C, V2(x, y))
         if w < 0 or v < 0 or u < 0:  # 0 is actually a valid value! (it is on the edge)
           continue
-        
-        self.glVertex(x, y, color)
+
+        z = A.z * w + B.z * v + C.z * u
+
+        if z > self.zbuffer[x][y]:
+          self.glVertex(x, y, color)
+          self.zbuffer[x][y] = z
+
   
   def glInit(self):
-    self.load('./models/pikachu-pokemon-go.obj', [40, 5], [10, 10], PIKACHU)
+    # self.load('./models/face.obj', [1, 1], [1, 1])
+    self.load('./models/pikachu-pokemon-go.obj', (35, 5, 0), (15, 15, 15))
     # LABORATORIO 1    
     # self.drawPolygon('./polygons/polygon1.txt', PIKACHU)
     # self.drawPolygon('./polygons/polygon2.txt', RED)
@@ -384,5 +388,5 @@ class Renderer(object):
     
     self.glFinish('image.bmp')
 
-renderer = Renderer(1000, 800)
+renderer = Renderer(1000, 1000)
 renderer.glInit()
