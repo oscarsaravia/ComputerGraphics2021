@@ -1,7 +1,7 @@
 # Librerias
 import random
 import operations as op
-from obj import Obj
+from obj import Obj, Texture
 from figures import Figures
 from collections import namedtuple
 
@@ -9,14 +9,14 @@ from collections import namedtuple
 V2 = namedtuple('Point2', ['x', 'y'])
 V3 = namedtuple('Point3', ['x', 'y', 'z'])
 
-# ====== COLORS ===========
+# ====== COLORS =================
 WHITE = op.color(255, 255, 255)
 BLACK = op.color(0, 0, 0)
 BLUE = op.color(0, 0, 255)
 AQUA = op.color(0, 255, 255)
 PIKACHU = op.color(244,220,38)
 RED = op.color(255, 0, 0)
-# =========================
+# ===============================
 
 
 class Renderer(object):
@@ -271,7 +271,6 @@ class Renderer(object):
   
   def glInit(self):
     # self.load('./models/face.obj', [1, 1], [1, 1])
-    self.load('./models/pikachu-pokemon-go.obj', (35, 5, 0), (15, 15, 15))
     # LABORATORIO 1    
     # self.drawPolygon('./polygons/polygon1.txt', PIKACHU)
     # self.drawPolygon('./polygons/polygon2.txt', RED)
@@ -283,8 +282,12 @@ class Renderer(object):
     # self.triangle(V2(10, 70), V2(50, 160), V2(70, 80), RED)
     # self.triangle(V2(180, 50), V2(150, 1), V2(70, 180), PIKACHU)
     # self.triangle(V2(180, 150), V2(120, 160), V2(130, 180), WHITE)
-    
+
+    # SR4
+    # self.load('./models/pikachu-pokemon-go.obj', (35, 5, 0), (15, 15, 15))
+    t = Texture('./models/earth.bmp')
+    self.framebuffer = t.pixels
     self.glFinish('image.bmp')
 
-renderer = Renderer(1000, 1000)
+renderer = Renderer(4096, 2048)
 renderer.glInit()
