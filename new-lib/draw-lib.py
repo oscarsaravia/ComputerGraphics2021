@@ -1,123 +1,22 @@
 # Librerias
-import struct
 import random
+import operations as op
 from obj import Obj
 from figures import Figures
 from collections import namedtuple
 
+
 V2 = namedtuple('Point2', ['x', 'y'])
 V3 = namedtuple('Point3', ['x', 'y', 'z'])
 
-def sum(v0, v1):
-  """
-    Input: 2 size 3 vectors
-    Output: Size 3 vector with the per element sum
-  """
-  return V3(v0.x + v1.x, v0.y + v1.y, v0.z + v1.z)
-
-def sub(v0, v1):
-  """
-    Input: 2 size 3 vectors
-    Output: Size 3 vector with the per element substraction
-  """
-  return V3(v0.x - v1.x, v0.y - v1.y, v0.z - v1.z)
-
-def mul(v0, k):
-  """
-    Input: 2 size 3 vectors
-    Output: Size 3 vector with the per element multiplication
-  """
-  return V3(v0.x * k, v0.y * k, v0.z *k)
-
-def dot(v0, v1):
-  """
-    Input: 2 size 3 vectors
-    Output: Scalar with the dot product
-  """
-  return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z
-
-def cross(v0, v1):
-  """
-    Input: 2 size 3 vectors
-    Output: Size 3 vector with the cross product
-  """  
-  return V3(
-    v0.y * v1.z - v0.z * v1.y,
-    v0.z * v1.x - v0.x * v1.z,
-    v0.x * v1.y - v0.y * v1.x,
-  )
-
-def length(v0):
-  """
-    Input: 1 size 3 vector
-    Output: Scalar with the length of the vector
-  """  
-  return (v0.x**2 + v0.y**2 + v0.z**2)**0.5
-
-def norm(v0):
-  """
-    Input: 1 size 3 vector
-    Output: Size 3 vector with the normal of the vector
-  """  
-  v0length = length(v0)
-
-  if not v0length:
-    return V3(0, 0, 0)
-
-  return V3(v0.x/v0length, v0.y/v0length, v0.z/v0length)
-
-def bbox(*vertices):
-  """
-    Input: n size 2 vectors
-    Output: 2 size 2 vectors defining the smallest bounding rectangle possible
-  """  
-  xs = [ vertex.x for vertex in vertices ]
-  ys = [ vertex.y for vertex in vertices ]
-  xs.sort()
-  ys.sort()
-
-  return V2(xs[0], ys[0]), V2(xs[-1], ys[-1])
-
-def barycentric(A, B, C, P):
-  bary = cross(
-    V3(C.x - A.x, B.x - A.x, A.x - P.x), 
-    V3(C.y - A.y, B.y - A.y, A.y - P.y)
-  )
-
-  if abs(bary[2]) < 1:
-    return -1, -1, -1   # this triangle is degenerate, return anything outside
-
-  return (
-    1 - (bary[0] + bary[1]) / bary[2], 
-    bary[1] / bary[2], 
-    bary[0] / bary[2]
-  )
-
-
-# FUNCIONES
-
-def char(caracter):
-  return struct.pack('=c', caracter.encode('ascii'))
-
-# Devuelve un 'short'
-def word(word):
-  return struct.pack('=h', word)
-
-# Devuelve un 'long'
-def dobule_word(word):
-  return struct.pack('=l', word)
-
-# Devuelve un color en bits
-def color(r, g, b):
-  return bytes([b, g, r])
-
-# COLORES
-WHITE = color(255, 255, 255)
-BLACK = color(0, 0, 0)
-BLUE = color(0, 0, 255)
-AQUA = color(0, 255, 255)
-PIKACHU = color(244,220,38)
-RED = color(255, 0, 0)
+# ====== COLORS ===========
+WHITE = op.color(255, 255, 255)
+BLACK = op.color(0, 0, 0)
+BLUE = op.color(0, 0, 255)
+AQUA = op.color(0, 255, 255)
+PIKACHU = op.color(244,220,38)
+RED = op.color(255, 0, 0)
+# =========================
 
 
 class Renderer(object):
@@ -165,24 +64,24 @@ class Renderer(object):
     file = open(filename, 'bw')
 
     # File Header
-    file.write(char('B'))
-    file.write(char('M'))
-    file.write(dobule_word(54 + 3*(self.width*self.height)))
-    file.write(dobule_word(0))
-    file.write(dobule_word(54))
+    file.write(op.char('B'))
+    file.write(op.char('M'))
+    file.write(op.dobule_word(54 + 3*(self.width*self.height)))
+    file.write(op.dobule_word(0))
+    file.write(op.dobule_word(54))
 
     # Info Header
-    file.write(dobule_word(40))
-    file.write(dobule_word(self.width))
-    file.write(dobule_word(self.height))
-    file.write(word(1))
-    file.write(word(24))
-    file.write(dobule_word(0))
-    file.write(dobule_word(3*(self.width*self.height)))
-    file.write(dobule_word(0))
-    file.write(dobule_word(0))
-    file.write(dobule_word(0))
-    file.write(dobule_word(0))
+    file.write(op.dobule_word(40))
+    file.write(op.dobule_word(self.width))
+    file.write(op.dobule_word(self.height))
+    file.write(op.word(1))
+    file.write(op.word(24))
+    file.write(op.dobule_word(0))
+    file.write(op.dobule_word(3*(self.width*self.height)))
+    file.write(op.dobule_word(0))
+    file.write(op.dobule_word(0))
+    file.write(op.dobule_word(0))
+    file.write(op.dobule_word(0))
 
     # Bitmap
     for y in range(self.height):
@@ -258,13 +157,12 @@ class Renderer(object):
         b = self.transform(model.vertices[f2], translate, scale)
         c = self.transform(model.vertices[f3], translate, scale)
 
-        normal = norm(cross(sub(b, a), sub(c, a)))
-        intensity = dot(normal, light)
+        normal = op.norm(op.cross(op.sub(b, a), op.sub(c, a)))
+        intensity = op.dot(normal, light)
         grey = round(255 * intensity)
         if grey < 0:
           continue 
-
-        self.triangle(a, b, c, color(grey, grey, grey))
+        self.triangle(a, b, c, op.color(grey, grey, grey))
       else:
         f1 = face[0][0] - 1
         f2 = face[1][0] - 1
@@ -278,8 +176,8 @@ class Renderer(object):
             self.transform(model.vertices[f4], translate, scale)
         ]
 
-        normal = norm(cross(sub(vertices[0], vertices[1]), sub(vertices[1], vertices[2])))  # no necesitamos dos normales!!
-        intensity = dot(normal, light)
+        normal = op.norm(op.cross(op.sub(vertices[0], vertices[1]), op.sub(vertices[1], vertices[2])))  # no necesitamos dos normales!!
+        intensity = op.dot(normal, light)
         grey = round(255 * intensity)
         if grey < 0:
           continue # dont paint this face
@@ -289,8 +187,8 @@ class Renderer(object):
 
         A, B, C, D = vertices 
       
-        self.triangle(A, B, C, color(grey, grey, grey))
-        self.triangle(A, C, D, color(grey, grey, grey))
+        self.triangle(A, B, C, op.color(grey, grey, grey))
+        self.triangle(A, C, D, op.color(grey, grey, grey))
 
       # for j in range(vcount):
       #   f1 = face[j][0]
@@ -356,11 +254,11 @@ class Renderer(object):
           self.framebuffer[y][k] = color
 
   def triangle(self, A, B, C, color=None):
-    bbox_min, bbox_max = bbox(A, B, C)
+    bbox_min, bbox_max = op.bbox(A, B, C)
 
     for x in range(bbox_min.x, bbox_max.x + 1):
       for y in range(bbox_min.y, bbox_max.y + 1):
-        w, v, u = barycentric(A, B, C, V2(x, y))
+        w, v, u = op.barycentric(A, B, C, V2(x, y))
         if w < 0 or v < 0 or u < 0:  # 0 is actually a valid value! (it is on the edge)
           continue
 
