@@ -134,7 +134,7 @@ class Renderer(object):
       self.glVertex(*point, color)
 
   def transform(self, vertex, translate=(0, 0, 0), scale=(1, 1, 1)):
-    return V3(
+    return op.V3(
       round((vertex[0] + translate[0]) * scale[0]),
       round((vertex[1] + translate[1]) * scale[1]),
       round((vertex[2] + translate[2]) * scale[2])
@@ -150,19 +150,29 @@ class Renderer(object):
         f1 = face[0][0] - 1
         f2 = face[1][0] - 1
         f3 = face[2][0] - 1
-        # print(f1)
-        # print(f2)
-        # print(f3)
+
         a = self.transform(model.vertices[f1], translate, scale)
         b = self.transform(model.vertices[f2], translate, scale)
         c = self.transform(model.vertices[f3], translate, scale)
 
         normal = op.norm(op.cross(op.sub(b, a), op.sub(c, a)))
         intensity = op.dot(normal, light)
-        grey = round(255 * intensity)
-        if grey < 0:
-          continue 
-        self.triangle(a, b, c, op.color(grey, grey, grey))
+
+        if not self.texture:
+          grey = round(255 * intensity)
+          if grey < 0:
+            continue 
+          self.triangle(a, b, c, color=op.color(grey, grey, grey))
+        else:
+          f1 = face[0][0] - 1
+          f2 = face[1][0] - 1
+          f3 = face[2][0] - 1
+
+          tA = op.V3(*model.tvertices[f1])
+          tB = op.V3(*model.tvertices[f2])
+          tC = op.V3(*model.tvertices[f3])
+          self.triangle(a, b, c, texture_coords=(tA, tB, tC), intensity=intensity)
+
       else:
         f1 = face[0][0] - 1
         f2 = face[1][0] - 1
@@ -176,19 +186,29 @@ class Renderer(object):
             self.transform(model.vertices[f4], translate, scale)
         ]
 
-        normal = op.norm(op.cross(op.sub(vertices[0], vertices[1]), op.sub(vertices[1], vertices[2])))  # no necesitamos dos normales!!
+        normal = op.norm(op.cross(op.sub(vertices[0], vertices[1]), op.sub(vertices[1], vertices[2])))
         intensity = op.dot(normal, light)
         grey = round(255 * intensity)
-        if grey < 0:
-          continue # dont paint this face
-
-        # vertices are ordered, no need to sort!
-        # vertices.sort(key=lambda v: v.x + v.y)
-
         A, B, C, D = vertices 
-      
-        self.triangle(A, B, C, op.color(grey, grey, grey))
-        self.triangle(A, C, D, op.color(grey, grey, grey))
+
+        if not self.texture:
+          grey = round(255 * intensity)
+          if grey < 0:
+            continue 
+          self.triangle(A, B, C, op.color(grey, grey, grey))
+          self.triangle(A, C, D, op.color(grey, grey, grey))
+        else:
+          f1 = face[0][0] - 1
+          f2 = face[1][0] - 1
+          f3 = face[2][0] - 1
+          f4 = face[3][0] - 1
+
+          tA = op.V3(*model.tvertices[f1])
+          tB = op.V3(*model.tvertices[f2])
+          tC = op.V3(*model.tvertices[f3])
+          tD = op.V3(*model.tvertices[f4])
+          self.triangle(A, B, C, texture_coords=(tA, tB, tC), intensity=intensity)
+          self.triangle(A, C, D, texture_coords=(tA, tC, tD), intensity=intensity)
 
       # for j in range(vcount):
       #   f1 = face[j][0]
@@ -252,21 +272,58 @@ class Renderer(object):
               end = i
         for k in range(x+1, end):
           self.framebuffer[y][k] = color
+  def shader(self, x, y):
+    if y < 150:
+      choices = [(64,78,111), (109,133,191)]
+      selected = random.choice(choices)
+      return op.color(selected[0], selected[1], selected[2])
+    else:
+      return op.color(109,133,191)
+    # center_x, center_y = 400, 400
+    # radius = 50
+    # if (x-center_x)**2 + (y-center_y)**2 < radius**2:
+    #   return op.color(107,131,199)
+    # else:
+    #   choices = [(75,93,133), (46,57,81), (112,137,200)]
+    #   random_choice = random.choice(choices)
+    #   return op.color(random_choice[0], random_choice[1], random_choice[2])
+    # if A.y > 200:
+    #   return op.color(255, 0, 200)
+    # else:
+    #   return op.color(255, 0, 255)
 
-  def triangle(self, A, B, C, color=None):
+  def triangle(self, A, B, C, col=None, texture_coords=None, intensity=1):
     bbox_min, bbox_max = op.bbox(A, B, C)
 
     for x in range(bbox_min.x, bbox_max.x + 1):
       for y in range(bbox_min.y, bbox_max.y + 1):
         w, v, u = op.barycentric(A, B, C, V2(x, y))
-        if w < 0 or v < 0 or u < 0:  # 0 is actually a valid value! (it is on the edge)
+        if w < 0 or v < 0 or u < 0:
           continue
+
+        if self.texture:
+          tA, tB, tC = texture_coords
+          tx = tA.x * w + tB.x * v + tC.x * u
+          ty = tA.y * w + tB.y * v + tC.y * u
+          
+          fcolor = self.texture.get_color(tx, ty)
+          b, g, r = [int(c * intensity) if intensity > 0 else 0 for c in fcolor]
+          col = op.color(r, g, b)
+      
+        col = self.shader(x, y)
 
         z = A.z * w + B.z * v + C.z * u
 
-        if z > self.zbuffer[x][y]:
-          self.glVertex(x, y, color)
-          self.zbuffer[x][y] = z
+        if x < 0 or y < 0:
+          continue
+
+        if x < len(self.zbuffer) and y < len(self.zbuffer[x]) and z > self.zbuffer[x][y]:
+          self.glVertex(x, y, col)
+          self.zbuffer[x][y]
+
+        # if z > self.zbuffer[x][y]:
+        #   self.glVertex(x, y, color)
+        #   self.zbuffer[x][y] = z
 
   
   def glInit(self):
@@ -286,8 +343,11 @@ class Renderer(object):
     # SR4
     # self.load('./models/pikachu-pokemon-go.obj', (35, 5, 0), (15, 15, 15))
     t = Texture('./models/earth.bmp')
-    self.framebuffer = t.pixels
+    self.texture = t
+    # self.framebuffer = t.pixels
+    self.load('./models/earth.obj', (800, 600, 0), (0.5, 0.5, 1))
     self.glFinish('image.bmp')
 
-renderer = Renderer(4096, 2048)
+# renderer = Renderer(4096, 2048)
+renderer = Renderer(800, 600)
 renderer.glInit()

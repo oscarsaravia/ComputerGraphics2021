@@ -14,8 +14,10 @@ class Obj(object):
   def read(self):
     for line in self.lines:
       if line:
-        prefix, value = line.split(' ', 1)
-
+        try:
+          prefix, value = line.split(' ', 1)
+        except:
+          prefix = ''
         if prefix == 'v':
           self.vertices.append(
             list(map(float, value.split(' ')))
@@ -53,3 +55,9 @@ class Texture(object):
         r = ord(image.read(1))
         self.pixels[y].append(op.color(r, g, b))
     image.close()
+  
+  def get_color(self, tx, ty):
+    x = int(tx * self.width) - 1
+    y = int(ty * self.height) - 1
+
+    return self.pixels[y][x]
