@@ -217,3 +217,15 @@ def writeBMP(filename, width, height, pixels):
     for y in range(width):
       f.write(pixels[x][y])
   f.close()
+
+
+BLACK = color(0, 0, 0)
+WHITE = color(255, 255, 255)
+
+class Material(object):
+  def __init__(self, diffuse):
+    self.diffuse = diffuse
+
+class Intersect(object):
+  def __init__(self, distance):
+    self.distance = distance
