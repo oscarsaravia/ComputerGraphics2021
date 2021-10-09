@@ -1,6 +1,5 @@
 # Oscar Saravia 19322
 # Graficas por computadora
-# 19322
 
 import struct
 import numpy
