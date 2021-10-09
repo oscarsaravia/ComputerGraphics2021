@@ -6,8 +6,8 @@ from figures import Figures
 from collections import namedtuple
 
 
-V2 = namedtuple('Point2', ['x', 'y'])
-V3 = namedtuple('Point3', ['x', 'y', 'z'])
+# V2 = namedtuple('Point2', ['x', 'y'])
+# V3 = namedtuple('Point3', ['x', 'y', 'z'])
 
 # ====== COLORS =================
 WHITE = op.color(255, 255, 255)
@@ -23,10 +23,13 @@ class Renderer(object):
   def __init__(self, width, height):
     self.width = width
     self.height = height
-    self.glCreateWindow(self.width, self.height)
-    self.glViewPort(0, 0, width, height)
+    # self.glViewPort(0, 0, width, height)
+    self.current_color = WHITE
+    self.glCreateWindow()
+    self.current_texture = None
+    self.light = op.V3(0, 0, 1)
   
-  def glCreateWindow(self, width, height):
+  def glCreateWindow(self):
     self.framebuffer = [
       [BLACK for x in range(self.width)]
       for y in range(self.height)
@@ -44,6 +47,10 @@ class Renderer(object):
       self.framebuffer = [
         [color for x in range(self.width)]
         for y in range(self.height)
+      ]
+      self.zbuffer = [
+      [-float('inf') for x in range(self.width)]
+      for y in range(self.height)
       ]
     else:
       self.framebuffer = [
@@ -142,87 +149,20 @@ class Renderer(object):
   
   def load(self, filename, translate=(0, 0, 0), scale=(1, 1, 1)):
     model = Obj(filename)
-    light = V3(0, 0, 1)
+    vertex_buffer_object = []
     for face in model.faces:
-      vcount = len(face)
-
-      if vcount ==3:
-        f1 = face[0][0] - 1
-        f2 = face[1][0] - 1
-        f3 = face[2][0] - 1
-
-        a = self.transform(model.vertices[f1], translate, scale)
-        b = self.transform(model.vertices[f2], translate, scale)
-        c = self.transform(model.vertices[f3], translate, scale)
-
-        normal = op.norm(op.cross(op.sub(b, a), op.sub(c, a)))
-        intensity = op.dot(normal, light)
-
-        if not self.texture:
-          grey = round(255 * intensity)
-          if grey < 0:
-            continue 
-          self.triangle(a, b, c, color=op.color(grey, grey, grey))
-        else:
-          f1 = face[0][0] - 1
-          f2 = face[1][0] - 1
-          f3 = face[2][0] - 1
-
-          tA = op.V3(*model.tvertices[f1])
-          tB = op.V3(*model.tvertices[f2])
-          tC = op.V3(*model.tvertices[f3])
-          self.triangle(a, b, c, texture_coords=(tA, tB, tC), intensity=intensity)
-
-      else:
-        f1 = face[0][0] - 1
-        f2 = face[1][0] - 1
-        f3 = face[2][0] - 1
-        f4 = face[3][0] - 1 
-
-        vertices = [
-            self.transform(model.vertices[f1], translate, scale),
-            self.transform(model.vertices[f2], translate, scale),
-            self.transform(model.vertices[f3], translate, scale),
-            self.transform(model.vertices[f4], translate, scale)
-        ]
-
-        normal = op.norm(op.cross(op.sub(vertices[0], vertices[1]), op.sub(vertices[1], vertices[2])))
-        intensity = op.dot(normal, light)
-        grey = round(255 * intensity)
-        A, B, C, D = vertices 
-
-        if not self.texture:
-          grey = round(255 * intensity)
-          if grey < 0:
-            continue 
-          self.triangle(A, B, C, op.color(grey, grey, grey))
-          self.triangle(A, C, D, op.color(grey, grey, grey))
-        else:
-          f1 = face[0][0] - 1
-          f2 = face[1][0] - 1
-          f3 = face[2][0] - 1
-          f4 = face[3][0] - 1
-
-          tA = op.V3(*model.tvertices[f1])
-          tB = op.V3(*model.tvertices[f2])
-          tC = op.V3(*model.tvertices[f3])
-          tD = op.V3(*model.tvertices[f4])
-          self.triangle(A, B, C, texture_coords=(tA, tB, tC), intensity=intensity)
-          self.triangle(A, C, D, texture_coords=(tA, tC, tD), intensity=intensity)
-
-      # for j in range(vcount):
-      #   f1 = face[j][0]
-      #   f2 = face[(j + 1) % vcount][0]
-
-      #   v1 = model.vertices[f1 - 1]
-      #   v2 = model.vertices[f2 - 1]
-
-      #   x1 = round((v1[0] + translate[0]) * scale[0])
-      #   y1 = round((v1[1] + translate[1]) * scale[1])
-      #   x2 = round((v2[0] + translate[0]) * scale[0])
-      #   y2 = round((v2[1] + translate[1]) * scale[1])
-
-      #   self.glLine(x1, y1, x2, y2, color)
+      for v in range(len(face)):
+        vertex = self.transform(model.vertices[face[v][0] - 1], translate, scale)
+        vertex_buffer_object.append(vertex)
+    self.active_vertex_array = iter(vertex_buffer_object)
+  
+  def draw_arrays(self, polygon):
+    if polygon == 'TRIANGLES':
+      try:
+        while True:
+          self.triangle()
+      except StopIteration:
+        pass
 
   def drawPolygon(self, filename, color):
     xpoints = []
@@ -312,25 +252,33 @@ class Renderer(object):
     # else:
     #   return op.color(255, 0, 255)
 
-  def triangle(self, A, B, C, col=None, texture_coords=None, intensity=1):
+  def triangle(self):
+    A = next(self.active_vertex_array)
+    B = next(self.active_vertex_array)
+    C = next(self.active_vertex_array)
     bbox_min, bbox_max = op.bbox(A, B, C)
 
+    normal = op.norm(op.cross(op.sub(B, A), op.sub(C, A)))
+    intensity = op.dot(normal, self.light)
+    if intensity < 0:
+      return
     for x in range(bbox_min.x, bbox_max.x + 1):
       for y in range(bbox_min.y, bbox_max.y + 1):
-        w, v, u = op.barycentric(A, B, C, V2(x, y))
+        w, v, u = op.barycentric(A, B, C, op.V2(x, y))
         if w < 0 or v < 0 or u < 0:
           continue
 
-        if self.texture:
+        if self.current_texture:
           tA, tB, tC = texture_coords
           tx = tA.x * w + tB.x * v + tC.x * u
           ty = tA.y * w + tB.y * v + tC.y * u
           
-          fcolor = self.texture.get_color(tx, ty)
+          fcolor = self.current_texture.get_color(tx, ty)
           b, g, r = [int(c * intensity) if intensity > 0 else 0 for c in fcolor]
           col = op.color(r, g, b)
       
-        col = self.shader(x, y)
+        # col = op.color(255*intensity, 255*intensity, 255*intensity)
+        col = WHITE
 
         z = A.z * w + B.z * v + C.z * u
 
@@ -347,6 +295,9 @@ class Renderer(object):
 
   
   def glInit(self):
+    self.load('./models/face.obj', (1, 1, 1), (300, 300, 300))
+    self.draw_arrays('TRIANGLES')
+    self.glFinish('image.bmp')
     # self.load('./models/face.obj', [1, 1], [1, 1])
     # LABORATORIO 1    
     # self.drawPolygon('./polygons/polygon1.txt', PIKACHU)
@@ -362,11 +313,11 @@ class Renderer(object):
 
     # SR4
     # self.load('./models/pikachu-pokemon-go.obj', (35, 5, 0), (15, 15, 15))
-    t = Texture('./models/earth.bmp')
-    self.texture = t
+    # t = Texture('./models/earth.bmp')
+    # self.texture = t
     # self.framebuffer = t.pixels
-    self.load('./models/earth.obj', (800, 600, 0), (0.5, 0.5, 1))
-    self.glFinish('image.bmp')
+    # self.load('./models/earth.obj', (800, 600, 0), (0.5, 0.5, 1))
+    # self.glFinish('image.bmp')
 
 # renderer = Renderer(4096, 2048)
 renderer = Renderer(800, 600)

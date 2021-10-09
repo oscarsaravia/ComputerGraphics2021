@@ -1,8 +1,32 @@
+import numpy
 from collections import namedtuple
 import struct
 
 V2 = namedtuple('Point2', ['x', 'y'])
-V3 = namedtuple('Point3', ['x', 'y', 'z'])
+# V3 = namedtuple('Point3', ['x', 'y', 'z'])
+
+class V3(object):
+  def __init__(self, x, y = None, z = None):
+    if (type(x) == numpy.matrix):
+      self.x, self.y, self.z = x.tolist()[0]
+    else:
+      self.x = x
+      self.y = y
+      self.z = z
+
+  def __repr__(self):
+    return "V3(%s, %s, %s)" % (self.x, self.y, self.z)
+
+class V2(object):
+  def __init__(self, x, y = None):
+    if (type(x) == numpy.matrix):
+      self.x, self.y = x.tolist()[0]
+    else:
+      self.x = x
+      self.y = y
+
+  def __repr__(self):
+    return "V2(%s, %s)" % (self.x, self.y)
 
 def color(r, g, b):
   return bytes([b, g, r])
@@ -56,10 +80,10 @@ def barycentric(A, B, C, P):
     V3(C.x - A.x, B.x - A.x, A.x - P.x), 
     V3(C.y - A.y, B.y - A.y, A.y - P.y)
   )
-  if abs(bary[2]) < 1:
+  if abs(bary.z) < 1:
     return -1, -1, -1
   return (
-    1 - (bary[0] + bary[1]) / bary[2], 
-    bary[1] / bary[2], 
-    bary[0] / bary[2]
+    1 - (bary.x + bary.y) / bary.z, 
+    bary.y / bary.z, 
+    bary.x / bary.z
   )
