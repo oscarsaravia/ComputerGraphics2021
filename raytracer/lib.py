@@ -182,6 +182,11 @@ def color(r, g, b):
   >>> bytes([0, 0, 255])
   b'\x00\x00\xff'
   """
+  # def __mul__(self, k):
+  #   r = ccolor(self.r * k)
+  #   g = ccolor(self.g * k)
+  #   b = ccolor(self.b * k)
+  #   return color(r, g, b)
   return bytes([b, g, r])
 
 
@@ -223,9 +228,17 @@ BLACK = color(0, 0, 0)
 WHITE = color(255, 255, 255)
 
 class Material(object):
-  def __init__(self, diffuse):
+  def __init__(self, diffuse, albedo):
     self.diffuse = diffuse
+    self.albedo = albedo
 
 class Intersect(object):
-  def __init__(self, distance):
+  def __init__(self, distance, point, normal):
     self.distance = distance
+    self.point = point
+    self.normal = normal
+
+class Light(object):
+  def __init__(self, position, intensity):
+    self.position = position
+    self.intensity = intensity
