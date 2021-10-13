@@ -23,11 +23,10 @@ class Renderer(object):
   def __init__(self, width, height):
     self.width = width
     self.height = height
-    # self.glViewPort(0, 0, width, height)
     self.current_color = WHITE
-    self.glCreateWindow()
     self.current_texture = None
     self.light = op.V3(0, 0, 1)
+    self.glCreateWindow()
   
   def glCreateWindow(self):
     self.framebuffer = [
@@ -93,7 +92,7 @@ class Renderer(object):
     # Bitmap
     for y in range(self.height):
       for x in range(self.width):
-        file.write(self.framebuffer[y][x])
+        file.write(self.framebuffer[x][y].toBytes())
 
     file.close()
 
@@ -154,6 +153,11 @@ class Renderer(object):
       for v in range(len(face)):
         vertex = self.transform(model.vertices[face[v][0] - 1], translate, scale)
         vertex_buffer_object.append(vertex)
+      if self.current_texture:
+        for v in range(len(face)):
+          tvertex = op.V3(*model.vertices[face[v][1] - 1])
+          vertex_buffer_object.append(vertex)
+        
     self.active_vertex_array = iter(vertex_buffer_object)
   
   def draw_arrays(self, polygon):
@@ -256,6 +260,12 @@ class Renderer(object):
     A = next(self.active_vertex_array)
     B = next(self.active_vertex_array)
     C = next(self.active_vertex_array)
+
+    if self.current_texture:
+      tA = next(self.active_vertex_array)
+      tB = next(self.active_vertex_array)
+      tC = next(self.active_vertex_array)
+
     bbox_min, bbox_max = op.bbox(A, B, C)
 
     normal = op.norm(op.cross(op.sub(B, A), op.sub(C, A)))
@@ -269,16 +279,13 @@ class Renderer(object):
           continue
 
         if self.current_texture:
-          tA, tB, tC = texture_coords
           tx = tA.x * w + tB.x * v + tC.x * u
           ty = tA.y * w + tB.y * v + tC.y * u
           
           fcolor = self.current_texture.get_color(tx, ty)
-          b, g, r = [int(c * intensity) if intensity > 0 else 0 for c in fcolor]
           col = op.color(r, g, b)
-      
-        # col = op.color(255*intensity, 255*intensity, 255*intensity)
-        col = WHITE
+        else:
+          col = WHITE
 
         z = A.z * w + B.z * v + C.z * u
 
@@ -287,38 +294,17 @@ class Renderer(object):
 
         if x < len(self.zbuffer) and y < len(self.zbuffer[x]) and z > self.zbuffer[x][y]:
           self.glVertex(x, y, col)
-          self.zbuffer[x][y]
-
-        # if z > self.zbuffer[x][y]:
-        #   self.glVertex(x, y, color)
-        #   self.zbuffer[x][y] = z
+          self.zbuffer[x][y] = z
 
   
   def glInit(self):
-    self.load('./models/face.obj', (1, 1, 1), (300, 300, 300))
+    print('Program started...')
+    self.load('./models/model.obj', (1, 1, 1), (300, 300, 300))
+    print('Load finished...')
     self.draw_arrays('TRIANGLES')
+    print('Triangles finished started...')
     self.glFinish('image.bmp')
-    # self.load('./models/face.obj', [1, 1], [1, 1])
-    # LABORATORIO 1    
-    # self.drawPolygon('./polygons/polygon1.txt', PIKACHU)
-    # self.drawPolygon('./polygons/polygon2.txt', RED)
-    # self.drawPolygon('./polygons/polygon3.txt', AQUA)
-    # self.drawPolygon('./polygons/polygon4.txt', PIKACHU)
-    # self.drawPolygon('./polygons/polygon5.txt', RED)
+    print('Done...')
 
-    # TRIANGLES
-    # self.triangle(V2(10, 70), V2(50, 160), V2(70, 80), RED)
-    # self.triangle(V2(180, 50), V2(150, 1), V2(70, 180), PIKACHU)
-    # self.triangle(V2(180, 150), V2(120, 160), V2(130, 180), WHITE)
-
-    # SR4
-    # self.load('./models/pikachu-pokemon-go.obj', (35, 5, 0), (15, 15, 15))
-    # t = Texture('./models/earth.bmp')
-    # self.texture = t
-    # self.framebuffer = t.pixels
-    # self.load('./models/earth.obj', (800, 600, 0), (0.5, 0.5, 1))
-    # self.glFinish('image.bmp')
-
-# renderer = Renderer(4096, 2048)
 renderer = Renderer(800, 600)
 renderer.glInit()
