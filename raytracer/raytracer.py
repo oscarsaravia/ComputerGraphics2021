@@ -30,16 +30,35 @@ class Raytracer(object):
 
     if material is None :
       return self.background_color
-
     light_dir = norm(sub(self.light.position, intersect.point))
-    intensity = self.light.intensity * max(0, dot(light_dir, intersect.normal))
+    offset_normal = mul(intersect.normal, 1.1)
+    shadow_orig = sum(intersect.point + offset_normal) \
+      if dot(light_dir, intersect.normal) > 0 \
+      else sub(intersect.point, offset_normal)
+    shadow_material, shadow_intersect = self.scene_intersect(shadow_orig, light_dir)
+    if shadow_material is None:
+      shadow_intensity = 0
+    else:
+      shadow_intensity = 0.9
+      
+
+    diffuse_intensity = self.light.intensity * max(0, dot(light_dir, intersect.normal)) * (1 - shadow_intensity)
+    if shadow_intensity > 0:
+      specular_intensity = 0
+    else:
+      reflection = reflect(light_dir, intersect.normal)
+      specular_intensity = self.light.intensity * (
+        max(0, dot(reflection, direction)) ** material.spec
+      )
+      
     # diffuse = material.diffuse * intensity
     diffuse = color(
-      int(material.diffuse[2] * intensity * material.albedo[0]),
-      int(material.diffuse[1] * intensity * material.albedo[0]),
-      int(material.diffuse[0] * intensity * material.albedo[0]),
+      int(material.diffuse[2] * diffuse_intensity * material.albedo[0]),
+      int(material.diffuse[1] * diffuse_intensity * material.albedo[0]),
+      int(material.diffuse[0] * diffuse_intensity * material.albedo[0]),
     )
-    c = diffuse
+    specular = self.light.color * specular_intensity * material.albedo[0]
+    c = diffuse + specular
     return c
     if (material):
       return material.diffuse
@@ -76,11 +95,12 @@ class Raytracer(object):
 
 r = Raytracer(1000, 1000)
 r.light = Light(
-  position = V3(10, 10, 10),
-  intensity = 1
+  position = V3(-20, -20, 20),
+  intensity = 2,
+  color=color(255, 255, 255)
 )
-ivory = Material(diffuse=color(100, 100, 80), albedo=[0.6])
-rubber = Material(diffuse=color(80, 0, 0), albedo=[0.9])
+ivory = Material(diffuse=color(100, 100, 80), albedo=[0.6, 0.3], spec=50)
+rubber = Material(diffuse=color(80, 0, 0), albedo=[0.9, 0.1], spec=10)
 # m = Material(diffuse=color(255, 255, 0), albedo=[0.1])
 # s = Sphere(V3(-3, 0, -16), 2, m)
 r.scene = [
@@ -91,3 +111,4 @@ r.scene = [
 ]
 r.render()
 r.write('r.bmp')
+

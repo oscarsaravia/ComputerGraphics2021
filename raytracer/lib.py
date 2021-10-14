@@ -227,10 +227,14 @@ def writeBMP(filename, width, height, pixels):
 BLACK = color(0, 0, 0)
 WHITE = color(255, 255, 255)
 
+def reflect(I, N):
+  return norm(sub(I, mul(N, 2*dot(I, N))))
+
 class Material(object):
-  def __init__(self, diffuse, albedo):
+  def __init__(self, diffuse, albedo, spec):
     self.diffuse = diffuse
     self.albedo = albedo
+    self.spec = spec
 
 class Intersect(object):
   def __init__(self, distance, point, normal):
@@ -239,6 +243,7 @@ class Intersect(object):
     self.normal = normal
 
 class Light(object):
-  def __init__(self, position, intensity):
+  def __init__(self, position, intensity, color):
     self.position = position
     self.intensity = intensity
+    self.color = color
