@@ -1,5 +1,6 @@
 import struct
 import operations as op
+from operations import color
 
 class Obj(object):
   def __init__(self, filename):
@@ -8,6 +9,7 @@ class Obj(object):
 
     self.vertices = []
     self.tvertices = []
+    self.normals = []
     self.faces = []
     self.read()
 
@@ -24,6 +26,10 @@ class Obj(object):
           )
         elif prefix == 'vt':
           self.tvertices.append(
+            list(map(float, value.split(' ')))
+          )
+        elif prefix == 'vn':
+          self.normals.append(
             list(map(float, value.split(' ')))
           )
         elif prefix == 'f':

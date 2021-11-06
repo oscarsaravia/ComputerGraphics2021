@@ -173,26 +173,38 @@ def dword(d):
   """
   return struct.pack('=l', d)
 
-def color(r, g, b):
-  """
-  Input: each parameter must be a number such that 0 <= number <= 255
-         each number represents a color in rgb
-  Output: 3 bytes
-  Example:
-  >>> bytes([0, 0, 255])
-  b'\x00\x00\xff'
-  """
-  # def __mul__(self, k):
-  #   r = ccolor(self.r * k)
-  #   g = ccolor(self.g * k)
-  #   b = ccolor(self.b * k)
-  #   return color(r, g, b)
+def ccolor(r, g, b):
   return bytes([b, g, r])
 
+class color(object):
+  def init(self,r,g,b = None):
+    self.r = r
+    self.g = g 
+    self.b = b
 
-# ===============================================================
-# BMP
-# ===============================================================
+  def repr(self):
+    b = ccolor(self.b)
+    g = ccolor(self.g)
+    r = ccolor(self.r)
+    return "color(%s, %s, %s)" % (r, g, b)
+
+  def add(self, other):
+    b = ccolor(self.b + other.b)
+    g = ccolor(self.g + other.g)
+    r = ccolor(self.r + other.r)
+    return color(r,g,b)
+
+  def mul(self, other):
+    b = ccolor(self.b * other)
+    g = ccolor(self.g * other)
+    r = ccolor(self.r * other)
+    return color(r,g,b)
+
+  def toBytes(self):
+    b = ccolor(self.b)
+    g = ccolor(self.g)
+    r = ccolor(self.r)
+    return bytes([b,g,r])
 
 def writeBMP(filename, width, height, pixels):
   f = open(filename, 'bw')
@@ -230,11 +242,29 @@ WHITE = color(255, 255, 255)
 def reflect(I, N):
   return norm(sub(I, mul(N, 2*dot(I, N))))
 
+def refract(I, N, refractive_index):
+  cosi = -max(-1, min(1, dot(I, N)))
+  etai = 1
+  etat = refractive_index
+  if cosi < 0:
+    cosi = -cosi
+    etai, etat = etat, etai
+    N = mul(N, -1)
+  eta = etai/etat
+  k = 1 - eta**2 (1-cosi**2)
+  if k<0:
+    return None
+  
+  return sum (
+    mul(I, eta),
+    mul(N, (eta*cosi) + k**0.5)
+  )
 class Material(object):
-  def __init__(self, diffuse, albedo, spec):
+  def __init__(self, diffuse, albedo, spec, reftractive_index):
     self.diffuse = diffuse
     self.albedo = albedo
     self.spec = spec
+    self.reftractive_index = reftractive_index
 
 class Intersect(object):
   def __init__(self, distance, point, normal):
@@ -247,3 +277,4 @@ class Light(object):
     self.position = position
     self.intensity = intensity
     self.color = color
+

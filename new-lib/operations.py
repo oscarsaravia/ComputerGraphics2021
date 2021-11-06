@@ -14,6 +14,14 @@ class V3(object):
       self.y = y
       self.z = z
 
+  def __getitem__(self, i):
+    if i == 0:
+      return self.x
+    elif i == 1:
+      return self.y
+    elif i == 2:
+      return self.z
+
   def __repr__(self):
     return "V3(%s, %s, %s)" % (self.x, self.y, self.z)
 
@@ -28,8 +36,38 @@ class V2(object):
   def __repr__(self):
     return "V2(%s, %s)" % (self.x, self.y)
 
-def color(r, g, b):
-  return bytes([b, g, r])
+def ccolor(v):
+  return max(0, min(255, int(v)))
+
+class color(object):
+  def __init__(self,r,g,b):
+    self.r = r
+    self.g = g 
+    self.b = b
+
+  def __repr__(self):
+    b = ccolor(self.b)
+    g = ccolor(self.g)
+    r = ccolor(self.r)
+    return "color(%s, %s, %s)" % (r, g, b)
+
+  def __add__(self, other):
+    r = ccolor(self.r + other.r)
+    g = ccolor(self.g + other.g)
+    b = ccolor(self.b + other.b)
+    return color(r,g,b)
+
+  def __mul__(self, other):
+    r = ccolor(self.r * other)
+    g = ccolor(self.g * other)
+    b = ccolor(self.b * other)
+    return color(r,g,b)
+
+  def toBytes(self):
+    b = ccolor(self.b)
+    g = ccolor(self.g)
+    r = ccolor(self.r)
+    return bytes([b,g,r])
 
 def char(caracter):
   return struct.pack('=c', caracter.encode('ascii'))
@@ -50,6 +88,7 @@ def mul(v0, k):
   return V3(v0.x * k, v0.y * k, v0.z *k)
 
 def dot(v0, v1):
+  # print(v0, ' - ', v1)
   return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z
 
 def cross(v0, v1):
@@ -73,7 +112,7 @@ def bbox(*vertices):
   ys = [ vertex.y for vertex in vertices ]
   xs.sort()
   ys.sort()
-  return V2(xs[0], ys[0]), V2(xs[-1], ys[-1])
+  return V3(round(xs[0]), round(ys[0])), V3(round(xs[-1]), round(ys[-1]))
 
 def barycentric(A, B, C, P):
   bary = cross(
